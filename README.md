@@ -1,3 +1,9 @@
+
+
+
+<img width="1024" height="1024" alt="ChatGPT Image Feb 14, 2026, 07_46_02 PM" src="https://github.com/user-attachments/assets/265cb8d4-662f-488c-a82b-0a99d8af6b5c" />
+
+
 Its Simple Just Download The File And Open It!!
 
 Also If You Open It Windows Will Probably Say Windows Protected Your PC But That’s Because It’s Not A Signed App (Which You Have To Pay To Get Signed Just To Stop One Pop-Up).
