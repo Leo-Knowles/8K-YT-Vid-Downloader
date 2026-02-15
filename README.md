@@ -1,10 +1,4 @@
-
-                                             ![ChatGPT Image Feb 14, 2026, 08_13_03 PM](https://github.com/user-attachments/assets/b2dd2d99-64f1-41ee-bb6f-738b9068773e)
-
-            
-
-                                 
-                                   If You Open It Windows Will Probably Say Windows Protected Your PC But That’s Because It’s Not A Signed App (Which You Have To Pay To Get Signed Just To Stop One Pop-Up).
+If You Open It Windows Will Probably Say Windows Protected Your PC But That’s Because It’s Not A Signed App (Which You Have To Pay To Get Signed Just To Stop One Pop-Up).
 
 This App Was Originally A Python Script But I Used PyInstaller To Turn It Into An EXE File So I Think You Can Use It On Macs If You Download The Python Script And Install Python You Might Be Able To Run It If You Open It From A Command Line But I’ve Not Tested It Yet.
 
