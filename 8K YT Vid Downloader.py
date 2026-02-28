@@ -1,6 +1,7 @@
 import os
 import platform
 import subprocess
+import time
 import pyperclip
 import yt_dlp
 from rich.console import Console
@@ -11,7 +12,7 @@ import pyfiglet
 console = Console()
 RAINBOW = ["#FF00FF", "#00FFFF", "#00FF00", "#FFFF00", "#FF6600", "#FF0000"]
 
-# ================= RAINBOW TEXT =================
+# ================= Rainbow Utilities =================
 def rainbow_text(text: str) -> Text:
     t = Text()
     for i, char in enumerate(text):
@@ -27,7 +28,7 @@ def rinput(prompt_text: str) -> str:
     console.print(rainbow_text(value))
     return value
 
-# ================= BANNER =================
+# ================= Banner =================
 def banner():
     try:
         width = os.get_terminal_size().columns
@@ -38,7 +39,7 @@ def banner():
         console.print(rainbow_text(line))
     rprint("Networked Audio & Stream Acquirer\n")
 
-# ================= FOLDER SELECT =================
+# ================= Folder Selection =================
 def choose_folder():
     base = os.path.expanduser("~")
     folders = {
@@ -63,7 +64,7 @@ def choose_folder():
     os.makedirs(path, exist_ok=True)
     return path
 
-# ================= GPU DETECTION =================
+# ================= GPU Detection =================
 def detect_gpu():
     device_name = platform.processor() or "Unknown CPU"
     nvenc_available = False
@@ -83,7 +84,7 @@ def detect_gpu():
         device_name += ' (Not NVIDIA)'
     return device_name, nvenc_available
 
-# ================= PROGRESS BAR =================
+# ================= Progress Bar =================
 class RainbowBarColumn(BarColumn):
     def render(self, task: Task) -> Text:
         bar = super().render(task)
@@ -102,7 +103,7 @@ class RainbowPercentColumn(TextColumn):
             t.append(char, style=RAINBOW[i % len(RAINBOW)])
         return t
 
-# ================= AUDIO FILTER =================
+# ================= Audio Filters =================
 def build_audio_filters(bass=0, trim_start=0, trim_end=None, fadein=0, fadeout=0, normalize=False):
     filters = []
     if bass > 0:
@@ -119,7 +120,7 @@ def build_audio_filters(bass=0, trim_start=0, trim_end=None, fadein=0, fadeout=0
         filters.append(f"atrim=start={trim_start}:end={end}")
     return ','.join(filters) if filters else None
 
-# ================= DOWNLOAD FUNCTION =================
+# ================= Download Core =================
 def download(url, folder, mode="video_audio", video_opts=None, audio_opts=None, extra_args=None):
     opts = {
         "outtmpl": os.path.join(folder, "%(title)s.%(ext)s"),
@@ -165,28 +166,39 @@ def download(url, folder, mode="video_audio", video_opts=None, audio_opts=None, 
         except Exception as e:
             rprint(f"❌ Download failed: {e}")
 
-# ================= URL TYPE =================
+# ================= Auto 8K Quality =================
+def auto_quality_format():
+    return "bestvideo+bestaudio/best"
+
+def auto_download(url, folder):
+    video_opts = {"format": auto_quality_format(), "container": "mp4", "gpu": True, "nvenc": True}
+    audio_opts = {"codec": "mp3", "quality": "320"}
+    download(url, folder, mode="video_audio", video_opts=video_opts, audio_opts=audio_opts)
+    rprint("✅ Automatic download complete!")
+
+def auto_mode_loop(folder):
+    last_url = ""
+    rprint("🚀 Automatic Archival Mode Active (Clipboard Watcher)")
+    rprint("Copy a YouTube URL and it will download automatically!\n")
+    try:
+        while True:
+            url = pyperclip.paste().strip()
+            if url != last_url and url.startswith(("http://","https://")):
+                last_url = url
+                rprint(f"Detected URL: {url}")
+                auto_download(url, folder)
+            time.sleep(2)
+    except KeyboardInterrupt:
+        rprint("👋 Exiting Automatic Mode")
+
+# ================= URL Type =================
 def detect_type(url):
     if "playlist" in url or "list=" in url:
         return "playlist"
     return "video"
 
-# ================= MAIN =================
-def main():
-    banner()
-    folder = choose_folder()
-    gpu_name, nvenc_available = detect_gpu()
-    rprint(f"[SYSTEM] Device: {gpu_name}")
-    rprint(f"[SYSTEM] NVENC Available: {nvenc_available}\n")
-
-    rprint("Select Downloader Mode:")
-    rprint("1) Basic")
-    rprint("2) Advanced")
-    rprint("3) Nerdy (Pro Audio Mode)")
-    mode = rinput("Choose mode [1-3, default 1]: ").strip()
-    if mode not in ["1","2","3"]:
-        mode = "1"
-
+# ================= Interactive Manual Mode =================
+def manual_mode(folder):
     quality_map = [
         ("Best (auto)",       "bestvideo+bestaudio/best"),
         ("8K",                "bestvideo[height>=4320]+bestaudio/best"),
@@ -224,7 +236,7 @@ def main():
 
         # Video options
         video_opts = {}
-        if download_mode != "audio_only" and mode in ["2","3"]:
+        if download_mode != "audio_only":
             rprint("Select Video Quality (8K+ where available):")
             for i, (label, _) in enumerate(quality_map,1):
                 rprint(f"{i}) {label}")
@@ -237,18 +249,12 @@ def main():
             video_opts["format"] = fmt
             video_opts["container"] = rinput("Video container (mp4/mkv/mov/avi) leave blank for mp4: ").strip() or "mp4"
             video_opts["gpu"] = rinput("Use GPU if available? [y/n]: ").lower() == "y"
-            video_opts["nvenc"] = nvenc_available and video_opts["gpu"]
 
         # Audio options
         audio_opts = {}
-        if download_mode != "video_only" and mode in ["2","3"]:
-            rprint("Select Audio Format:")
+        if download_mode != "video_only":
             audio_opts["codec"] = rinput("mp3/m4a/flac/wav/ogg leave blank for mp3: ").strip() or "mp3"
             audio_opts["quality"] = rinput("Bitrate kbps (192 default): ").strip() or "192"
-            if mode=="3":
-                bass = rinput("Bass boost (1-1000, default 0): ").strip()
-                bass = int(bass) if bass.isdigit() else 0
-                audio_opts["filters"] = build_audio_filters(bass=bass)
 
         extra_args = rinput("Extra FFmpeg args (leave blank for none): ").strip().split() or None
 
@@ -258,6 +264,26 @@ def main():
         if again != "y":
             rprint("Goodbye 👋")
             break
+
+# ================= MAIN =================
+def main():
+    banner()
+    folder = choose_folder()
+    gpu_name, nvenc_available = detect_gpu()
+    rprint(f"[SYSTEM] Device: {gpu_name}")
+    rprint(f"[SYSTEM] NVENC Available: {nvenc_available}\n")
+
+    rprint("Select Mode:")
+    rprint("1) Manual Interactive Mode")
+    rprint("2) Automatic 8K Archival Mode")
+    mode = rinput("Choose mode [1-2, default 1]: ").strip()
+    if mode not in ["1","2"]:
+        mode = "1"
+
+    if mode == "1":
+        manual_mode(folder)
+    else:
+        auto_mode_loop(folder)
 
 if __name__ == "__main__":
     try:
